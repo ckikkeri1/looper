@@ -17,11 +17,16 @@
 package com.ibm.hybrid.cloud.sample.stocktrader.looper;
 
 import com.ibm.hybrid.cloud.sample.stocktrader.looper.client.PortfolioClient;
+import com.ibm.hybrid.cloud.sample.stocktrader.looper.json.Portfolio;
 
 //JSON Web Token (JWT) construction
 import com.ibm.websphere.security.jwt.InvalidBuilderException;
 import com.ibm.websphere.security.jwt.JwtBuilder;
 import com.ibm.websphere.security.jwt.JwtToken;
+
+//String manipulation for logging
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 //CDI 1.2
 import javax.inject.Inject;
@@ -109,7 +114,7 @@ public class Looper extends Application {
 	
 				long end = System.currentTimeMillis();
 	
-				response.append("Elapsed time for this iteration: "+(end-start)+" ms\n\n");
+				response.append("\n\nElapsed time for this iteration: "+(end-start)+" ms\n\n");
 			}
 	
 			if (count>1) { //only show if they asked for multiple iterations
@@ -149,47 +154,88 @@ public class Looper extends Application {
 	
 	public StringBuffer iteration(String id, String jwt) {
 		StringBuffer response = new StringBuffer();
+		Portfolio portfolio = null;
+		Portfolio[] all = null;
 
-		response.append("0:  DELETE /portfolio/"+id+"\n"+
-			portfolioClient.deletePortfolio(jwt, id)+"\n\n"); //Remove this portfolio
+		try {
+			//if there's already such a portfolio from a previous aborted run, clean it up first
+			response.append("0:  DELETE /portfolio/"+id+"\n");
+			try {
+				portfolio = portfolioClient.deletePortfolio(jwt, id); //Remove this portfolio
+				response.append(portfolio); //Remove this portfolio
+			} catch (Throwable t) {
+				System.out.println("The following error is expected if there's nothing to cleanup:  "+t.getMessage());
+				response.append("No left-over portfolio named \""+id+"\" to delete.  That's OK, continuing on....");
+			}
 
-		response.append("1:  GET /portfolio\n"+
-			portfolioClient.getPortfolios(jwt)+"\n\n"); //Summary of all portfolios
+			response.append("\n\n1:  GET /portfolio\n");
+			all = portfolioClient.getPortfolios(jwt); //Summary of all portfolios
+			response.append(arrayToString(all));
 
-		response.append("2:  POST /portfolio/"+id+"\n"+
-			portfolioClient.createPortfolio(jwt, id)+"\n\n"); //Create a new portfolio
+			response.append("\n\n2:  POST /portfolio/"+id+"\n");
+			portfolio = portfolioClient.createPortfolio(jwt, id); //Create a new portfolio
+			response.append(portfolio);
 
-		response.append("3:  PUT /portfolio/"+id+"?symbol="+SYMBOL1+"&shares=1\n"+
-			portfolioClient.updatePortfolio(jwt, id, SYMBOL1, 1)+"\n\n"); //Buy stock for this portfolio
+			response.append("\n\n3:  PUT /portfolio/"+id+"?symbol="+SYMBOL1+"&shares=1\n");
+			portfolio = portfolioClient.updatePortfolio(jwt, id, SYMBOL1, 1); //Buy stock for this portfolio
+			response.append(portfolio);
 
-		response.append("4:  PUT /portfolio/"+id+"?symbol="+SYMBOL2+"&shares=2\n"+
-			portfolioClient.updatePortfolio(jwt, id, SYMBOL2, 2)+"\n\n"); //Buy stock for this portfolio
+			response.append("\n\n4:  PUT /portfolio/"+id+"?symbol="+SYMBOL2+"&shares=2\n");
+			portfolio = portfolioClient.updatePortfolio(jwt, id, SYMBOL2, 2); //Buy stock for this portfolio
+			response.append(portfolio);
 
-		response.append("5:  PUT /portfolio/"+id+"?symbol="+SYMBOL3+"&shares=3\n"+
-			portfolioClient.updatePortfolio(jwt, id, SYMBOL3, 3)+"\n\n"); //Buy stock for this portfolio
+			response.append("\n\n5:  PUT /portfolio/"+id+"?symbol="+SYMBOL3+"&shares=3\n");
+			portfolio = portfolioClient.updatePortfolio(jwt, id, SYMBOL3, 3); //Buy stock for this portfolio
+			response.append(portfolio);
 
-		response.append("6:  GET /portfolio/"+id+"\n"+
-			portfolioClient.getPortfolio(jwt, id)+"\n\n"); //Get details of this portfolio
+			response.append("\n\n6:  GET /portfolio/"+id+"\n");
+			portfolio = portfolioClient.getPortfolio(jwt, id); //Get details of this portfolio
+			response.append(portfolio);
 
-		response.append("7:  GET /portfolio\n"+
-			portfolioClient.getPortfolios(jwt)+"\n\n"); //Summary of all portfolios, to see results
+			response.append("\n\n7:  GET /portfolio\n");
+			all = portfolioClient.getPortfolios(jwt); //Summary of all portfolios, to see results
+			response.append(arrayToString(all));
 
-		response.append("8:  PUT /portfolio/"+id+"?symbol="+SYMBOL1+"&shares=6\n"+
-			portfolioClient.updatePortfolio(jwt, id, SYMBOL1, 6)+"\n\n"); //Buy more of this stock for this portfolio
+			response.append("\n\n8:  PUT /portfolio/"+id+"?symbol="+SYMBOL1+"&shares=6\n");
+			portfolio = portfolioClient.updatePortfolio(jwt, id, SYMBOL1, 6); //Buy more of this stock for this portfolio
+			response.append(portfolio);
 
-		response.append("9:  PUT /portfolio/"+id+"?symbol="+SYMBOL3+"&shares=-3\n"+
-			portfolioClient.updatePortfolio(jwt, id, SYMBOL3, -3)+"\n\n"); //Sell all of this stock for this portfolio
+			response.append("\n\n9:  PUT /portfolio/"+id+"?symbol="+SYMBOL3+"&shares=-3\n");
+			portfolio = portfolioClient.updatePortfolio(jwt, id, SYMBOL3, -3); //Sell all of this stock for this portfolio
+			response.append(portfolio);
 
-		response.append("10: GET /portfolio/"+id+"\n"+
-			portfolioClient.getPortfolio(jwt, id)+"\n\n"); //Get details of this portfolio again
+			response.append("\n\n10: GET /portfolio/"+id+"\n");
+			portfolio = portfolioClient.getPortfolio(jwt, id); //Get details of this portfolio again
+			response.append(portfolio);
 
-		response.append("11: DELETE /portfolio/"+id+"\n"+
-			portfolioClient.deletePortfolio(jwt, id)+"\n\n"); //Remove this portfolio
+			response.append("\n\n11: DELETE /portfolio/"+id+"\n");
+			portfolio = portfolioClient.deletePortfolio(jwt, id); //Remove this portfolio
+			response.append(portfolio);
 
-		response.append("12: GET /portfolio\n"+
-			portfolioClient.getPortfolios(jwt)+"\n\n"); //Summary of all portfolios, to see back to beginning
+			response.append("\n\n12: GET /portfolio\n");
+			all = portfolioClient.getPortfolios(jwt); //Summary of all portfolios, to see back to beginning
+			response.append(arrayToString(all));
+		} catch (Throwable t) {
+			StringWriter writer = new StringWriter();
+			t.printStackTrace(new PrintWriter(writer));
+			String stackTrace = writer.toString();
+			System.out.println(stackTrace);
+			response.append("\n"+stackTrace);
+		}
 
 		return response;
+	}
+
+	private String arrayToString(Object[] objects) {
+		StringBuffer buffer = new StringBuffer("[");
+		if (objects != null) {
+			for (int index=0; index<objects.length; index++) {
+				if (index != 0) buffer.append(", ");
+				buffer.append(objects[index]);
+			}
+		}
+		buffer.append("]");
+		return buffer.toString();
 	}
 
 	/**
