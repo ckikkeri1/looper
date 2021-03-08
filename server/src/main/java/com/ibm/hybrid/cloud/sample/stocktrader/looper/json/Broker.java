@@ -1,5 +1,5 @@
 /*
-       Copyright 2017-2019 IBM Corp All Rights Reserved
+       Copyright 2017-2021 IBM Corp All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,8 +16,9 @@
 
 package com.ibm.hybrid.cloud.sample.stocktrader.looper.json;
 
+import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.util.Iterator;
-import java.util.Set;
 
 //JSON-P 1.0 (JSR 353).  This replaces my old usage of IBM's JSON4J (com.ibm.json.java.JSONObject)
 import javax.json.Json;
@@ -25,8 +26,8 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 
-/** JSON-B POJO class representing a Portfolio JSON object */
-public class Portfolio {
+/** JSON-B POJO class representing a Broker JSON object */
+public class Broker {
     private String owner;
     private double total;
     private String loyalty;
@@ -36,16 +37,17 @@ public class Portfolio {
     private String sentiment;
     private double nextCommission;
     private JsonObject stocks;
+    private NumberFormat currency = null;
 
 
-    public Portfolio() { //default constructor
+    public Broker() { //default constructor
     }
 
-    public Portfolio(String initialOwner) { //primary key constructor
+    public Broker(String initialOwner) { //primary key constructor
         setOwner(initialOwner);
     }
 
-    public Portfolio(String initialOwner, double initialTotal, String initialLoyalty, double initialBalance,
+    public Broker(String initialOwner, double initialTotal, String initialLoyalty, double initialBalance,
                      double initialCommissions, int initialFree, String initialSentiment, double initialNextCommission) {
         setOwner(initialOwner);
         setTotal(initialTotal);
@@ -160,13 +162,35 @@ public class Portfolio {
 
     public boolean equals(Object obj) {
         boolean isEqual = false;
-        if ((obj != null) && (obj instanceof Portfolio)) isEqual = toString().equals(obj.toString());
+        if ((obj != null) && (obj instanceof Broker)) isEqual = toString().equals(obj.toString());
         return isEqual;
    }
 
     public String toString() {
-        return "{\"owner\": \""+owner+"\", \"total\": "+total+", \"loyalty\": \""+loyalty+"\", \"balance\": "+balance
-               +", \"commissions\": "+commissions+", \"free\": "+free+", \"nextCommission\": "+nextCommission
-               +", \"sentiment\": \""+sentiment+"\", \"stocks\": "+(stocks!=null?stocks.toString():"{}")+"}";
+        if (currency == null) {
+            currency = NumberFormat.getNumberInstance();
+            currency.setMinimumFractionDigits(2);
+            currency.setMaximumFractionDigits(2);
+            currency.setRoundingMode(RoundingMode.HALF_UP);
+        }
+
+        return "{\"owner\": \""+owner+"\", \"total\": "+currency.format(total)+", \"loyalty\": \""+loyalty
+               +"\", \"balance\": "+currency.format(balance)+", \"commissions\": "+currency.format(commissions)
+               +", \"free\": "+free+", \"nextCommission\": "+currency.format(nextCommission)
+               +", \"sentiment\": \""+sentiment+"\", \"stocks\": "+(stocks!=null?getStocksJSON():"{}")+"}";
+    }
+
+    public String getStocksJSON() {
+        StringBuffer json = new StringBuffer();
+        Iterator<String> keys = stocks.keySet().iterator();
+
+        while (keys.hasNext()) {
+            String key = keys.next();
+            JsonObject stock = stocks.getJsonObject(key);
+            json.append("\"key\": {\"symbol\": \""+symbol+"\", \"shares\": "+shares+", \"price\": "+currency.format(price)
+                +", \"date\": "+date+", \"total\": "+currency.format(total)+", \"commission\": "+currency.format(commission)+"}";
+        }
+
+        return json.toString();
     }
 }
