@@ -38,6 +38,7 @@ public class Broker {
     private double nextCommission;
     private JsonObject stocks;
     private NumberFormat currency = null;
+    private static double ERROR = -1.0;
 
 
     public Broker() { //default constructor
@@ -192,8 +193,19 @@ public class Broker {
             }
             String key = keys.next();
             JsonObject stock = stocks.getJsonObject(key);
+
+            String symbol = stock.getString("symbol");
+            int shares = stock.getInt("shares");
+            JsonNumber number = stock.getJsonNumber("price");
+            double price = (number != null) ? number.doubleValue() : ERROR;
+            String date = stock.getString("date");
+            number = stock.getJsonNumber("total");
+            double totalValue = (number != null) ? number.doubleValue() : ERROR;
+            number = stock.getJsonNumber("commission");
+            double commission = (number != null) ? number.doubleValue() : ERROR;
+            
             json.append("\"key\": {\"symbol\": \""+symbol+"\", \"shares\": "+shares+", \"price\": "+currency.format(price)
-                +", \"date\": "+date+", \"total\": "+currency.format(total)+", \"commission\": "+currency.format(commission)+"}");
+                +", \"date\": \""+date+"\", \"total\": "+currency.format(totalValue)+", \"commission\": "+currency.format(commission)+"}");
         }
 
         return json.toString();
