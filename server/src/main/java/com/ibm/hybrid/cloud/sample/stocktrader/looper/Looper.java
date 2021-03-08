@@ -16,8 +16,8 @@
 
 package com.ibm.hybrid.cloud.sample.stocktrader.looper;
 
-import com.ibm.hybrid.cloud.sample.stocktrader.looper.client.PortfolioClient;
-import com.ibm.hybrid.cloud.sample.stocktrader.looper.json.Portfolio;
+import com.ibm.hybrid.cloud.sample.stocktrader.looper.client.BrokerClient;
+import com.ibm.hybrid.cloud.sample.stocktrader.looper.json.Broker;
 
 //JSON Web Token (JWT) construction
 import com.ibm.websphere.security.jwt.InvalidBuilderException;
@@ -58,19 +58,19 @@ public class Looper extends Application {
 	private static final String SYMBOL2 = "AAPL";
 	private static final String SYMBOL3 = "GOOG";
 
-	private @Inject @RestClient PortfolioClient portfolioClient;
+	private @Inject @RestClient BrokerClient brokerClient;
 	private @Inject @ConfigProperty(name = "JWT_AUDIENCE") String jwtAudience;
 	private @Inject @ConfigProperty(name = "JWT_ISSUER") String jwtIssuer;
 
-	// Override Portfolio Client URL if config map is configured to provide URL
+	// Override Broker Client URL if config map is configured to provide URL
 	static {
-		String mpUrlPropName = PortfolioClient.class.getName() + "/mp-rest/url";
-		String portfolioURL = System.getenv("PORTFOLIO_URL");
-		if ((portfolioURL != null) && !portfolioURL.isEmpty()) {
-			System.out.println("Using Portfolio URL from config map: " + portfolioURL);
-			System.setProperty(mpUrlPropName, portfolioURL);
+		String mpUrlPropName = BrokerClient.class.getName() + "/mp-rest/url";
+		String brokerURL = System.getenv("BROKER_URL");
+		if ((brokerURL != null) && !brokerURL.isEmpty()) {
+			System.out.println("Using Broker URL from config map: " + brokerURL);
+			System.setProperty(mpUrlPropName, brokerURL);
 		} else {
-			System.out.println("Portfolio URL not found from env var from config map, so defaulting to value in jvm.options: " + System.getProperty(mpUrlPropName));
+			System.out.println("Broker URL not found from env var from config map, so defaulting to value in jvm.options: " + System.getProperty(mpUrlPropName));
 		}
 	}
 
@@ -154,66 +154,66 @@ public class Looper extends Application {
 	
 	public StringBuffer iteration(String id, String jwt) {
 		StringBuffer response = new StringBuffer();
-		Portfolio portfolio = null;
-		Portfolio[] all = null;
+		Broker broker = null;
+		Broker[] all = null;
 
 		try {
-			//if there's already such a portfolio from a previous aborted run, clean it up first
-			response.append("0:  DELETE /portfolio/"+id+"\n");
+			//if there's already such a broker from a previous aborted run, clean it up first
+			response.append("0:  DELETE /broker/"+id+"\n");
 			try {
-				portfolio = portfolioClient.deletePortfolio(jwt, id); //Remove this portfolio
-				response.append(portfolio); //Remove this portfolio
+				broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
+				response.append(broker); //Remove this broker
 			} catch (Throwable t) {
 				System.out.println("The following error is expected if there's nothing to cleanup:  "+t.getMessage());
-				response.append("No left-over portfolio named \""+id+"\" to delete.  That's OK, continuing on....");
+				response.append("No left-over broker named \""+id+"\" to delete.  That's OK, continuing on....");
 			}
 
-			response.append("\n\n1:  GET /portfolio\n");
-			all = portfolioClient.getPortfolios(jwt); //Summary of all portfolios
+			response.append("\n\n1:  GET /broker\n");
+			all = brokerClient.getBrokers(jwt); //Summary of all brokers
 			response.append(arrayToString(all));
 
-			response.append("\n\n2:  POST /portfolio/"+id+"\n");
-			portfolio = portfolioClient.createPortfolio(jwt, id); //Create a new portfolio
-			response.append(portfolio);
+			response.append("\n\n2:  POST /broker/"+id+"\n");
+			broker = brokerClient.createBroker(jwt, id); //Create a new broker
+			response.append(broker);
 
-			response.append("\n\n3:  PUT /portfolio/"+id+"?symbol="+SYMBOL1+"&shares=1\n");
-			portfolio = portfolioClient.updatePortfolio(jwt, id, SYMBOL1, 1); //Buy stock for this portfolio
-			response.append(portfolio);
+			response.append("\n\n3:  PUT /broker/"+id+"?symbol="+SYMBOL1+"&shares=1\n");
+			broker = brokerClient.updateBroker(jwt, id, SYMBOL1, 1); //Buy stock for this broker
+			response.append(broker);
 
-			response.append("\n\n4:  PUT /portfolio/"+id+"?symbol="+SYMBOL2+"&shares=2\n");
-			portfolio = portfolioClient.updatePortfolio(jwt, id, SYMBOL2, 2); //Buy stock for this portfolio
-			response.append(portfolio);
+			response.append("\n\n4:  PUT /broker/"+id+"?symbol="+SYMBOL2+"&shares=2\n");
+			broker = brokerClient.updateBroker(jwt, id, SYMBOL2, 2); //Buy stock for this broker
+			response.append(broker);
 
-			response.append("\n\n5:  PUT /portfolio/"+id+"?symbol="+SYMBOL3+"&shares=3\n");
-			portfolio = portfolioClient.updatePortfolio(jwt, id, SYMBOL3, 3); //Buy stock for this portfolio
-			response.append(portfolio);
+			response.append("\n\n5:  PUT /broker/"+id+"?symbol="+SYMBOL3+"&shares=3\n");
+			broker = brokerClient.updateBroker(jwt, id, SYMBOL3, 3); //Buy stock for this broker
+			response.append(broker);
 
-			response.append("\n\n6:  GET /portfolio/"+id+"\n");
-			portfolio = portfolioClient.getPortfolio(jwt, id); //Get details of this portfolio
-			response.append(portfolio);
+			response.append("\n\n6:  GET /broker/"+id+"\n");
+			broker = brokerClient.getBroker(jwt, id); //Get details of this broker
+			response.append(broker);
 
-			response.append("\n\n7:  GET /portfolio\n");
-			all = portfolioClient.getPortfolios(jwt); //Summary of all portfolios, to see results
+			response.append("\n\n7:  GET /broker\n");
+			all = brokerClient.getBrokers(jwt); //Summary of all brokers, to see results
 			response.append(arrayToString(all));
 
-			response.append("\n\n8:  PUT /portfolio/"+id+"?symbol="+SYMBOL1+"&shares=6\n");
-			portfolio = portfolioClient.updatePortfolio(jwt, id, SYMBOL1, 6); //Buy more of this stock for this portfolio
-			response.append(portfolio);
+			response.append("\n\n8:  PUT /broker/"+id+"?symbol="+SYMBOL1+"&shares=6\n");
+			broker = brokerClient.updateBroker(jwt, id, SYMBOL1, 6); //Buy more of this stock for this broker
+			response.append(broker);
 
-			response.append("\n\n9:  PUT /portfolio/"+id+"?symbol="+SYMBOL3+"&shares=-3\n");
-			portfolio = portfolioClient.updatePortfolio(jwt, id, SYMBOL3, -3); //Sell all of this stock for this portfolio
-			response.append(portfolio);
+			response.append("\n\n9:  PUT /broker/"+id+"?symbol="+SYMBOL3+"&shares=-3\n");
+			broker = brokerClient.updateBroker(jwt, id, SYMBOL3, -3); //Sell all of this stock for this broker
+			response.append(broker);
 
-			response.append("\n\n10: GET /portfolio/"+id+"\n");
-			portfolio = portfolioClient.getPortfolio(jwt, id); //Get details of this portfolio again
-			response.append(portfolio);
+			response.append("\n\n10: GET /broker/"+id+"\n");
+			broker = brokerClient.getBroker(jwt, id); //Get details of this broker again
+			response.append(broker);
 
-			response.append("\n\n11: DELETE /portfolio/"+id+"\n");
-			portfolio = portfolioClient.deletePortfolio(jwt, id); //Remove this portfolio
-			response.append(portfolio);
+			response.append("\n\n11: DELETE /broker/"+id+"\n");
+			broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
+			response.append(broker);
 
-			response.append("\n\n12: GET /portfolio\n");
-			all = portfolioClient.getPortfolios(jwt); //Summary of all portfolios, to see back to beginning
+			response.append("\n\n12: GET /broker\n");
+			all = brokerClient.getBrokers(jwt); //Summary of all brokers, to see back to beginning
 			response.append(arrayToString(all));
 		} catch (Throwable t) {
 			StringWriter writer = new StringWriter();
