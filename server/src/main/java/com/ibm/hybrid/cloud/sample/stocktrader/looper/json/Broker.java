@@ -184,11 +184,16 @@ public class Broker {
         StringBuffer json = new StringBuffer();
         Iterator<String> keys = stocks.keySet().iterator();
 
+        boolean first = true;
         while (keys.hasNext()) {
+            if (!first) {
+                json.append(", ");
+                first = false;
+            }
             String key = keys.next();
             JsonObject stock = stocks.getJsonObject(key);
             json.append("\"key\": {\"symbol\": \""+symbol+"\", \"shares\": "+shares+", \"price\": "+currency.format(price)
-                +", \"date\": "+date+", \"total\": "+currency.format(total)+", \"commission\": "+currency.format(commission)+"}";
+                +", \"date\": "+date+", \"total\": "+currency.format(total)+", \"commission\": "+currency.format(commission)+"}");
         }
 
         return json.toString();
