@@ -1,5 +1,5 @@
 /*
-       Copyright 2017 IBM Corp All Rights Reserved
+       Copyright 2017-2021 IBM Corp All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package com.ibm.hybrid.cloud.sample.stocktrader.looper.client;
 
 import com.ibm.hybrid.cloud.sample.stocktrader.looper.json.Feedback;
-import com.ibm.hybrid.cloud.sample.stocktrader.looper.json.Portfolio;
+import com.ibm.hybrid.cloud.sample.stocktrader.looper.json.Broker;
 import com.ibm.hybrid.cloud.sample.stocktrader.looper.json.WatsonInput;
 
 import javax.ws.rs.ApplicationPath;
@@ -39,37 +39,37 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 @ApplicationPath("/")
 @Path("/")
 @RegisterRestClient
-/** mpRestClient "remote" interface for the Portfolio microservice */
-public interface PortfolioClient {
+/** mpRestClient "remote" interface for the Broker microservice */
+public interface BrokerClient {
 	@GET
 	@Path("/")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Portfolio[] getPortfolios(@HeaderParam("Authorization") String jwt);
+	public Broker[] getBrokers(@HeaderParam("Authorization") String jwt);
 
 	@POST
 	@Path("/{owner}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Portfolio createPortfolio(@HeaderParam("Authorization") String jwt, @PathParam("owner") String owner);
+	public Broker createBroker(@HeaderParam("Authorization") String jwt, @PathParam("owner") String owner);
 
 	@GET
 	@Path("/{owner}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Portfolio getPortfolio(@HeaderParam("Authorization") String jwt, @PathParam("owner") String owner);
+	public Broker getBroker(@HeaderParam("Authorization") String jwt, @PathParam("owner") String owner);
 
 	@PUT
 	@Path("/{owner}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Portfolio updatePortfolio(@HeaderParam("Authorization") String jwt, @PathParam("owner") String owner, @QueryParam("symbol") String symbol, @QueryParam("shares") int shares);
+	public Broker updateBroker(@HeaderParam("Authorization") String jwt, @PathParam("owner") String owner, @QueryParam("symbol") String symbol, @QueryParam("shares") int shares);
 
 	@DELETE
 	@Path("/{owner}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Portfolio deletePortfolio(@HeaderParam("Authorization") String jwt, @PathParam("owner") String owner);
+	public Broker deleteBroker(@HeaderParam("Authorization") String jwt, @PathParam("owner") String owner);
 
 	@GET
 	@Path("/{owner}/returns")
 	@Produces(MediaType.TEXT_PLAIN)
-	public String getPortfolioReturns(@HeaderParam("Authorization") String jwt, @PathParam("owner") String owner);
+	public String getBrokerReturns(@HeaderParam("Authorization") String jwt, @PathParam("owner") String owner);
 
 	@POST
 	@Path("/{owner}/feedback")
