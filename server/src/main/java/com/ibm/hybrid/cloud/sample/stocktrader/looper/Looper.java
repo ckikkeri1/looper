@@ -104,6 +104,16 @@ public class Looper extends Application {
 			long beginning = System.currentTimeMillis();
 	
 			for (int index=1; index<=count; index++) {
+				//if there's already such a broker from a previous aborted run, clean it up first, before entering the loop
+				response.append("0:  DELETE /broker/"+id+"\n");
+				try {
+					broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
+					response.append(broker);
+				} catch (Throwable t) {
+					System.out.println("The following error is expected if there's nothing to cleanup: "+t.getMessage());
+					response.append("No left-over broker named \""+id+"\" to delete.  That's OK, continuing on....");
+				}
+
 				if (count>1) { //only show if they asked for multiple iterations
 					response.append("\nIteration #"+index+"\n");
 				}
@@ -133,18 +143,17 @@ public class Looper extends Application {
 	}
 
 	@GET
-    @Path("/jwt")
+	@Path("/jwt")
 	@Produces("text/plain")
-	public String getjwt() {
+	public String getJWT() {
 		StringBuffer response = new StringBuffer();
 
 		try {
-			System.out.println("Entering jwt");
+			System.out.println("Entering getJWT");
 	
 			String jwt = "Bearer "+createJWT("admin");
 	
-      response.append(jwt);
-	
+			response.append(jwt);
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
@@ -158,16 +167,7 @@ public class Looper extends Application {
 		Broker[] all = null;
 
 		try {
-			//if there's already such a broker from a previous aborted run, clean it up first
-			response.append("0:  DELETE /broker/"+id+"\n");
-			try {
-				broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
-				response.append(broker); //Remove this broker
-			} catch (Throwable t) {
-				System.out.println("The following error is expected if there's nothing to cleanup:  "+t.getMessage());
-				response.append("No left-over broker named \""+id+"\" to delete.  That's OK, continuing on....");
-			}
-
+			//note that for performance reasons, Broker does NOT return the stocks owned by each portfolio in the call that returns the "all brokers" array
 			response.append("\n\n1:  GET /broker\n");
 			all = brokerClient.getBrokers(jwt); //Summary of all brokers
 			response.append(arrayToString(all));
