@@ -107,7 +107,7 @@ public class Looper extends Application {
 				//if there's already such a broker from a previous aborted run, clean it up first, before entering the loop
 				response.append("0:  DELETE /broker/"+id+"\n");
 				try {
-					broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
+					Broker broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
 					response.append(broker);
 				} catch (Throwable t) {
 					System.out.println("The following error is expected if there's nothing to cleanup: "+t.getMessage());
