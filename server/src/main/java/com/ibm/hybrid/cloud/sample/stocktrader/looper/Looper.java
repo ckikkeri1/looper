@@ -116,7 +116,7 @@ public class Looper extends Application {
 				if (broker != null) {
 					response.append("0:  DELETE /broker/"+id+"\n");
 					try {
-						Broker broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
+						broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
 						response.append(broker);
 					} catch (Throwable t2) {
 						System.out.println("Error occurred during pre-loop cleanup: "+t2.getMessage());
