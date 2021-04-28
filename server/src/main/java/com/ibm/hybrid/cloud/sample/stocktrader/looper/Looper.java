@@ -105,13 +105,22 @@ public class Looper extends Application {
 	
 			for (int index=1; index<=count; index++) {
 				//if there's already such a broker from a previous aborted run, clean it up first, before entering the loop
-				response.append("0:  DELETE /broker/"+id+"\n");
+				Broker broker = null;
 				try {
-					Broker broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
-					response.append(broker);
+					response.append("Checking if there's a left-over broker named \""+id+"\".";
+					broker = brokerClient.getBroker(jwt, id);
 				} catch (Throwable t) {
-					System.out.println("The following error is expected if there's nothing to cleanup: "+t.getMessage());
 					response.append("No left-over broker named \""+id+"\" to delete.  That's OK, continuing on....");
+				}
+
+				if (broker != null) {
+					response.append("0:  DELETE /broker/"+id+"\n");
+					try {
+						Broker broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
+						response.append(broker);
+					} catch (Throwable t2) {
+						System.out.println("Error occurred during pre-loop cleanup: "+t2.getMessage());
+					}
 				}
 
 				if (count>1) { //only show if they asked for multiple iterations
