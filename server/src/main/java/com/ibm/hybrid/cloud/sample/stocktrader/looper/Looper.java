@@ -107,7 +107,7 @@ public class Looper extends Application {
 				//if there's already such a broker from a previous aborted run, clean it up first, before entering the loop
 				Broker broker = null;
 				try {
-					response.append("Checking if there's a left-over broker named \""+id+"\".";
+					response.append("Checking if there's a left-over broker named \""+id+"\".\n");
 					broker = brokerClient.getBroker(jwt, id);
 				} catch (Throwable t) {
 					response.append("No left-over broker named \""+id+"\" to delete.  That's OK, continuing on....");
