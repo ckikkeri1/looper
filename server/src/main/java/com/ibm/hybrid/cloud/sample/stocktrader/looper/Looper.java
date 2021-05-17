@@ -28,6 +28,10 @@ import com.ibm.websphere.security.jwt.JwtToken;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+//Logging (JSR 47)
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 //CDI 1.2
 import javax.inject.Inject;
 import javax.enterprise.context.ApplicationScoped;
@@ -58,6 +62,8 @@ public class Looper extends Application {
 	private static final String SYMBOL2 = "AAPL";
 	private static final String SYMBOL3 = "GOOG";
 
+	private static Logger logger = Logger.getLogger(Looper.class.getName());
+
 	private @Inject @RestClient BrokerClient brokerClient;
 	private @Inject @ConfigProperty(name = "JWT_AUDIENCE") String jwtAudience;
 	private @Inject @ConfigProperty(name = "JWT_ISSUER") String jwtIssuer;
@@ -67,10 +73,10 @@ public class Looper extends Application {
 		String mpUrlPropName = BrokerClient.class.getName() + "/mp-rest/url";
 		String brokerURL = System.getenv("BROKER_URL");
 		if ((brokerURL != null) && !brokerURL.isEmpty()) {
-			System.out.println("Using Broker URL from config map: " + brokerURL);
+			logger.info("Using Broker URL from config map: " + brokerURL);
 			System.setProperty(mpUrlPropName, brokerURL);
 		} else {
-			System.out.println("Broker URL not found from env var from config map, so defaulting to value in jvm.options: " + System.getProperty(mpUrlPropName));
+			logger.info("Broker URL not found from env var from config map, so defaulting to value in jvm.options: " + System.getProperty(mpUrlPropName));
 		}
 	}
 
@@ -95,14 +101,14 @@ public class Looper extends Application {
 			if (id==null) id = BASE_ID;
 			if (count==null) count=1; //isn't autoboxing cool?
 	
-			System.out.println("Entering looper, with ID: "+id+" and count: "+count);
-	
+			logger.info("Entering looper, with ID: "+id+" and count: "+count);
+
 			String jwt = "Bearer "+createJWT(id);
 	
-			System.out.println("Created a JWT");
-	
+			logger.fine("Created a JWT");
+
 			long beginning = System.currentTimeMillis();
-	
+
 			for (int index=1; index<=count; index++) {
 				//if there's already such a broker from a previous aborted run, clean it up first, before entering the loop
 				Broker broker = null;
@@ -119,7 +125,7 @@ public class Looper extends Application {
 						broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
 						response.append(broker);
 					} catch (Throwable t2) {
-						System.out.println("Error occurred during pre-loop cleanup: "+t2.getMessage());
+						logger.warning("Error occurred during pre-loop cleanup: "+t2.getMessage());
 					}
 				}
 
@@ -135,7 +141,7 @@ public class Looper extends Application {
 	
 				response.append("\n\nElapsed time for this iteration: "+(end-start)+" ms\n\n");
 			}
-	
+
 			if (count>1) { //only show if they asked for multiple iterations
 				long ending = System.currentTimeMillis();
 				double average = ((double) (ending-beginning))/((double) count);
@@ -143,7 +149,7 @@ public class Looper extends Application {
 				response.append("Overall average time per iteration: "+average+" ms\n");
 			}
 
-			System.out.println("Exiting looper");
+			logger.info("Exiting looper");
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
@@ -158,10 +164,10 @@ public class Looper extends Application {
 		StringBuffer response = new StringBuffer();
 
 		try {
-			System.out.println("Entering getJWT");
-	
+			logger.fine("Entering getJWT");
+
 			String jwt = "Bearer "+createJWT("admin");
-	
+
 			response.append(jwt);
 		} catch (Throwable t) {
 			t.printStackTrace();
@@ -228,7 +234,7 @@ public class Looper extends Application {
 			StringWriter writer = new StringWriter();
 			t.printStackTrace(new PrintWriter(writer));
 			String stackTrace = writer.toString();
-			System.out.println(stackTrace);
+			logger.warning(stackTrace);
 			response.append("\n"+stackTrace);
 		}
 
