@@ -34,7 +34,7 @@ import java.util.logging.Logger;
 
 //CDI 1.2
 import javax.inject.Inject;
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 
 //JAX-RS 2.0  (JSR 339)
 import javax.ws.rs.core.Application;
@@ -54,7 +54,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationPath("/")
 @Path("/")
-@ApplicationScoped
+@RequestScoped
 /** Runs a set of Porfolio REST API calls in a loop. */
 public class Looper extends Application {
 	private static final String BASE_ID = "Looper";
