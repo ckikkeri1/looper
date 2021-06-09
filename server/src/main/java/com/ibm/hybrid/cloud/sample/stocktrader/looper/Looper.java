@@ -263,7 +263,7 @@ public class Looper extends Application {
 			}
 		}
 
-		return response;
+		return response.toString();
 	}
 
 	private String arrayToString(Object[] objects) {
