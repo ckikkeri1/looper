@@ -41,6 +41,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.GET;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.Path;
@@ -100,11 +101,11 @@ public class Looper extends Application {
 		try {
 			if (id==null) id = BASE_ID;
 			if (count==null) count=1; //isn't autoboxing cool?
-	
+
 			logger.info("Entering looper, with ID: "+id+" and count: "+count);
 
 			String jwt = "Bearer "+createJWT(id);
-	
+
 			logger.fine("Created a JWT");
 
 			long beginning = System.currentTimeMillis();
@@ -113,20 +114,20 @@ public class Looper extends Application {
 				if (count>1) { //only show if they asked for multiple iterations
 					response.append("\nIteration #"+index+"\n");
 				}
-	
+
 				long start = System.currentTimeMillis();
-	
+
 				response.append(iteration(id, jwt));
-	
+
 				long end = System.currentTimeMillis();
-	
+
 				response.append("\n\nElapsed time for this iteration: "+(end-start)+" ms\n\n");
 			}
 
 			if (count>1) { //only show if they asked for multiple iterations
 				long ending = System.currentTimeMillis();
 				double average = ((double) (ending-beginning))/((double) count);
-	
+
 				response.append("Overall average time per iteration: "+average+" ms\n");
 			}
 
@@ -226,6 +227,8 @@ public class Looper extends Application {
 	@Path("/")
 	@Produces("text/plain")
 	public String cleanup(@QueryParam("id") String id, @QueryParam("count") Integer count) {
+		StringBuffer response = new StringBuffer();
+
 		if (id==null) id = BASE_ID;
 		if (count==null) count=1; //isn't autoboxing cool?
 
@@ -238,30 +241,29 @@ public class Looper extends Application {
 		long beginning = System.currentTimeMillis();
 
 		for (int index=1; index<=count; index++) {
-			response.append(deleteBroker(id+count, jwt));
-		}
-	}
-
-	private void deleteBroker(String id, String jwt) {
-		Broker broker = null;
-		try {
-			response.append("Checking if there's a left-over broker named \""+id+"\".\n");
-			broker = brokerClient.getBroker(jwt, id);
-		} catch (Throwable t) {
-			response.append("No left-over broker named \""+id+"\" to delete.  That's OK, continuing on....");
-		}
-
-		if (broker != null) {
-			response.append("DELETE /broker/"+id+"\n");
+			String owner = id+index;
+			Broker broker = null;
 			try {
-				broker = brokerClient.deleteBroker(jwt, id); //Remove this broker
-				response.append(broker);
-			} catch (Throwable t2) {
-				logger.warning("Error occurred during cleanup: "+t2.getMessage());
+				response.append("Checking if there's a left-over broker named \""+owner+"\".\n");
+				broker = brokerClient.getBroker(jwt, owner);
+			} catch (Throwable t) {
+				response.append("No left-over broker named \""+owner+"\" to delete.  That's OK, continuing on....");
 			}
-		} else {
-			logger.info("No broker found to delete for "+id);
+
+			if (broker != null) {
+				response.append("DELETE /broker/"+owner+"\n");
+				try {
+					broker = brokerClient.deleteBroker(jwt, owner); //Remove this broker
+					response.append(broker);
+				} catch (Throwable t2) {
+					logger.warning("Error occurred during cleanup: "+t2.getMessage());
+				}
+			} else {
+				logger.info("No broker found to delete for "+owner);
+			}
 		}
+
+		return response;
 	}
 
 	private String arrayToString(Object[] objects) {
