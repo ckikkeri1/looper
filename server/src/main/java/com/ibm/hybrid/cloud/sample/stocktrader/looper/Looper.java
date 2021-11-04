@@ -56,11 +56,11 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 @ApplicationPath("/")
 @Path("/")
 @RequestScoped
-/** Runs a set of Porfolio REST API calls in a loop. */
+/** Runs a set of Broker REST API calls in a loop. */
 public class Looper extends Application {
 	private static final String BASE_ID = "Looper";
-	private static final String SYMBOL1 = "IBM";  //will add Kyndryl once it's listed on the NYSE
-	private static final String SYMBOL2 = "GOOG";
+	private static final String SYMBOL1 = "IBM";
+	private static final String SYMBOL2 = "KD";
 	private static final String SYMBOL3 = "AAPL";
 
 	private static Logger logger = Logger.getLogger(Looper.class.getName());
