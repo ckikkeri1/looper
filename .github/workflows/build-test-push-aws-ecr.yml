@@ -28,9 +28,9 @@ name: Build, Push to Amazon ECR, Gitops
 on:
   push:
     branches:
-      - master 
+      - master
     paths-ignore:
-    - '.github/**' 
+      - '.github/**'
   release:
     types: [created]
 
@@ -56,58 +56,103 @@ jobs:
     environment: production
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
       
-    # Setup java
-    - name: Setup Java
-      uses: actions/setup-java@v1
-      with:
-        java-version: 8
-        
-    # Build and package app
-    - name: Build and package app
-      id: unit-test
-      run: |
-        mvn clean package
-        # verify
-        # cat target/failsafe-reports/failsafe-summary.xml
-        # grep -q "<failures>0</failures>" target/failsafe-reports/failsafe-summary.xml
-        # code=$?
-        # echo "ret: $code"
-        # if [[ $code -eq 0  ]]; then
-        #  echo "success"
-        #  echo '::set-output name=unit-test-result::success'
-        # else
-        #  echo "failed"
-        #  echo '::set-output name=unit-test-result::failed'
-        # fi
-        echo '::set-output name=unit-test-result::success'
+      # Setup java
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-2
+      # Build and package app
+      - name: Build and package app
+        id: unit-test
+        run: |
+          mvn clean package
+          # verify
+          # cat target/failsafe-reports/failsafe-summary.xml
+          # grep -q "<failures>0</failures>" target/failsafe-reports/failsafe-summary.xml
+          # code=$?
+          # echo "ret: $code"
+          # if [[ $code -eq 0  ]]; then
+          #  echo "success"
+          #  echo '::set-output name=unit-test-result::success'
+          # else
+          #  echo "failed"
+          #  echo '::set-output name=unit-test-result::failed'
+          # fi
+          echo '::set-output name=unit-test-result::success'
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
 
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: ibmstocktrader/looper
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        # Build a docker container and
-        # push it to ECR so that it can
-        # be deployed to ECS.
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-          --build-arg GITHUB_SHA="$GITHUB_SHA" \
-          --build-arg GITHUB_REF="$GITHUB_REF" .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ibmstocktrader/looper
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            --build-arg GITHUB_SHA="$GITHUB_SHA" \
+            --build-arg GITHUB_REF="$GITHUB_REF" .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+  update-gitops-repo:
+    name: Publish image updates to gitops repo
+    runs-on: ubuntu-latest
+    needs: [setup-build-publish-deploy]
+    steps:
+
+      # Checkout gitops repo
+      - name: Checkout gitops repo
+        uses: actions/checkout@v2
+        with:
+          repository: ${{env.GITOPS_REPO}}
+          path: gitops
+          token: ${{secrets.GITOPS_TOKEN}}
+
+      # Update application
+      - name: Upate application
+        run: |
+          set -x
+          set +e
+          ls -la
+          ls -la gitops
+          cd gitops
+          
+          ## update manifests to new image and tag
+          APP_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY"
+          VERSION="$GITHUB_SHA"
+          echo "image-registry-path: ${{needs.setup-build-publish-deploy.image-registry-path}}"
+          echo "${APP_IMAGE}"
+          echo "${VERSION}"
+          echo "print yq version"
+          yq --version
+          # yq w -i "${GITOPS_DIR}/stocktrader-aws-eks-cr.yml" spec.looper.image.repository "${APP_IMAGE}"
+          yq e ".spec.looper.image.repository = \"$APP_IMAGE\"" -i "${GITOPS_DIR}/stocktrader-aws-eks-cr.yml"
+          # yq w -i "${GITOPS_DIR}/stocktrader-aws-eks-cr.yml" spec.looper.image.tag "${VERSION}"
+          yq e ".spec.looper.image.tag = \"$VERSION\"" -i "${GITOPS_DIR}/stocktrader-aws-eks-cr.yml"
+          cat "${GITOPS_DIR}/stocktrader-aws-eks-cr.yml"          
+          if [[ $(git status -s | wc -l) -eq 0 ]]; then
+            echo "No changes"
+            exit 0
+          fi
+          git add "${GITOPS_DIR}/"
+          git config --global user.name 'GH Actions'
+          git config --global user.email 'github-actions@users.noreply.github.com'        
+          git commit -am "Updates ${APP_NAME} to ${VERSION}"   
+          git push https://$GITOPS_USERNAME:$GITOPS_TOKEN@github.com/$GITOPS_REPO 
