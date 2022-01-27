@@ -110,3 +110,4 @@ jobs:
           --build-arg GITHUB_REF="$GITHUB_REF" .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
